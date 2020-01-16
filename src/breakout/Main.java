@@ -15,6 +15,9 @@ import javafx.scene.shape.Shape;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
+import java.util.ArrayList;
+import breakout.Brick;
+
 
 /**
  * A basic example JavaFX program for the first lab.
@@ -23,7 +26,7 @@ import javafx.util.Duration;
  */
 public class Main extends Application {
     public static final String TITLE = "BREAKOUT (gjl13)";
-    public static final int SIZE = 400;
+    public static final int SIZE = 455;
     public static final int FRAMES_PER_SECOND = 60;
     public static final int MILLISECOND_DELAY = 1000 / FRAMES_PER_SECOND;
     public static final double SECOND_DELAY = 1.0 / FRAMES_PER_SECOND;
@@ -31,8 +34,12 @@ public class Main extends Application {
     public static final Paint HIGHLIGHT = Color.OLIVEDRAB;
     public static final String BOUNCER_IMAGE = "ball.gif";
     public static final String PADDLE_IMAGE = "paddle.gif";
-    public static final int PADDLE_SPEED = 5;
+    public static final String BRICK_IMAGE_1 = "brick8.gif";
+    public static final String BRICK_IMAGE_2 = "brick7.gif";
+    public static final String BRICK_IMAGE_3 = "brick9.gif";
+    public static final int PADDLE_SPEED = 10;
     public static final int BOUNCER_SPEED = 2;
+    public static final int BRICK_SPACING = 5;
     public static final Paint MOVER_COLOR = Color.PLUM;
     public static final int MOVER_SIZE = 50;
     public static final Paint GROWER_COLOR = Color.BISQUE;
@@ -43,6 +50,7 @@ public class Main extends Application {
     private Scene myScene;
     private ImageView myBouncer;
     private ImageView myPaddle;
+    private ArrayList<Brick> myBricks = new ArrayList<Brick>();
     public static double bouncerXDir = 1;
     public static double bouncerYDir = -1;
     private Rectangle myMover;
@@ -72,11 +80,16 @@ public class Main extends Application {
         // create one top level collection to organize the things in the scene
         Group root = new Group();
         // make some shapes and set their properties
+        double brickHeight = 20.0;
+        int numRows = 4;
+        for (int i = 0; i < numRows; i++){
+            createBricksRow(BRICK_SPACING*(i+1) + (int)brickHeight*i);
+        }
         Image bouncerImage = new Image(this.getClass().getClassLoader().getResourceAsStream(BOUNCER_IMAGE));
         myBouncer = new ImageView(bouncerImage);
         Image paddleImage = new Image(this.getClass().getClassLoader().getResourceAsStream(PADDLE_IMAGE));
         myPaddle = new ImageView(paddleImage);
-        // x and y represent the top left corner, so center it in window
+        // x and y represent the top left corner, so center it in windoW
         myBouncer.setX(width / 2 - myBouncer.getBoundsInLocal().getWidth() / 2);
         myBouncer.setY(height - myPaddle.getBoundsInLocal().getHeight() - myBouncer.getBoundsInLocal().getHeight() /2);
         myPaddle.setX(width / 2 - myPaddle.getBoundsInLocal().getWidth() / 2);
@@ -90,6 +103,9 @@ public class Main extends Application {
         root.getChildren().add(myMover);
         root.getChildren().add(myGrower);
         root.getChildren().add(myPaddle);
+        for (int i = 0; i < myBricks.size(); i++){
+            root.getChildren().add(myBricks.get(i));
+        }
         // create a place to see the shapes
         Scene scene = new Scene(root, width, height, background);
         // respond to input
@@ -98,6 +114,28 @@ public class Main extends Application {
         return scene;
     }
 
+    private void createBricksRow(int height){
+        Brick myBrick;
+        Image brickImage1 = new Image(this.getClass().getClassLoader().getResourceAsStream(BRICK_IMAGE_1));
+        Image brickImage2 = new Image(this.getClass().getClassLoader().getResourceAsStream(BRICK_IMAGE_2));
+        Image brickImage3 = new Image(this.getClass().getClassLoader().getResourceAsStream(BRICK_IMAGE_3));
+        double brickWidth = 70;
+        int bricksInRow = (int) (SIZE / brickWidth);
+        for (int i = 0; i < bricksInRow; i++){
+            double randomNumber = Math.random();
+            if (randomNumber < 0.8){
+                myBrick = new Brick(brickImage1,1);
+            } else if (randomNumber < 0.9) {
+                myBrick = new Brick(brickImage2,2);
+            } else {
+                myBrick = new Brick(brickImage3,3);
+            }
+            myBrick.setX(BRICK_SPACING*(i+1) + i*brickWidth);
+            myBrick.setY(height);
+            myBricks.add(myBrick);
+        }
+
+    }
     // Change properties of shapes in small ways to animate them over time
     // Note, there are more sophisticated ways to animate shapes, but these simple ways work fine to start
     private void step (double elapsedTime) {
@@ -143,9 +181,31 @@ public class Main extends Application {
     }
 
     private void checkPaddleCollision () {
-        if (myBouncer.getBoundsInParent().intersects(myPaddle.getBoundsInParent())){
+        double ballMinX = myBouncer.getBoundsInParent().getMinX();
+        double ballMaxX = myBouncer.getBoundsInParent().getMaxX();
+        double ballMaxY = myBouncer.getBoundsInParent().getMaxY();
+        double paddleMinX = myPaddle.getBoundsInParent().getMinX();
+        double paddleMaxX = myPaddle.getBoundsInParent().getMaxX();
+        double paddleMinY = myPaddle.getBoundsInParent().getMinY();
+
+        double paddleWidth = paddleMaxX - paddleMinX;
+        boolean onPaddleLevel = ballMaxY >= paddleMinY;
+        boolean ballIntersectsPaddle = onPaddleLevel && ballMaxX >= paddleMinX && ballMinX <= paddleMaxX;
+        boolean intersectsLeft = ballMaxX <= paddleMinX + (paddleWidth / 3) && onPaddleLevel;
+        boolean intersectsRight = ballMinX >= paddleMaxX - (paddleWidth / 3) && onPaddleLevel;
+
+        if (ballIntersectsPaddle){
+            if (intersectsLeft){
+                System.out.println("LEFT");
+                bouncerXDir = -1;
+            } else if (intersectsRight) {
+                System.out.println("RIGHT");
+                bouncerXDir = 1;
+            } else {
+                System.out.println("CENTER");
+            }
             bouncerYDir = -1*bouncerYDir;
-            myBouncer.setY(myBouncer.getY() + BOUNCER_SPEED*bouncerYDir);
+            myBouncer.setY(myBouncer.getY() + 2*BOUNCER_SPEED*bouncerYDir);
         }
     }
 
