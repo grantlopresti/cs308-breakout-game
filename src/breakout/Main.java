@@ -14,6 +14,9 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.Shape;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.Scanner;
 
 import java.util.ArrayList;
 import breakout.Brick;
@@ -61,7 +64,7 @@ public class Main extends Application {
      * Initialize what will be displayed and how it will be updated.
      */
     @Override
-    public void start (Stage stage) {
+    public void start (Stage stage) throws FileNotFoundException {
         // attach scene to the stage and display it
         myScene = setupGame(SIZE, SIZE, BACKGROUND);
         stage.setScene(myScene);
@@ -76,9 +79,15 @@ public class Main extends Application {
     }
 
     // Create the game's "scene": what shapes will be in the game and their starting properties
-    private Scene setupGame (int width, int height, Paint background) {
+    private Scene setupGame (int width, int height, Paint background) throws FileNotFoundException {
         // create one top level collection to organize the things in the scene
         Group root = new Group();
+        //Read text file
+        File file = new File("levelOneBricks.txt");
+        Scanner sc = new Scanner(file);
+        while (sc.hasNextLine()) {
+            System.out.println(sc.nextLine());
+        }
         // make some shapes and set their properties
         double brickHeight = 20.0;
         int numRows = 4;
@@ -93,7 +102,7 @@ public class Main extends Application {
         myBouncer.setX(width / 2 - myBouncer.getBoundsInLocal().getWidth() / 2);
         myBouncer.setY(height - myPaddle.getBoundsInLocal().getHeight() - myBouncer.getBoundsInLocal().getHeight() /2);
         myPaddle.setX(width / 2 - myPaddle.getBoundsInLocal().getWidth() / 2);
-        myPaddle.setY(height - myPaddle.getBoundsInLocal().getHeight());
+        myPaddle.setY(height - myPaddle.getBoundsInLocal().getHeight() - 5);
         myMover = new Rectangle(width / 2 - MOVER_SIZE / 2, height / 2 - 100, MOVER_SIZE, MOVER_SIZE);
         myMover.setFill(MOVER_COLOR);
         myGrower = new Rectangle(width / 2 - GROWER_SIZE / 2, height / 2 + 50, GROWER_SIZE, GROWER_SIZE);
@@ -106,6 +115,7 @@ public class Main extends Application {
         for (int i = 0; i < myBricks.size(); i++){
             root.getChildren().add(myBricks.get(i));
         }
+
         // create a place to see the shapes
         Scene scene = new Scene(root, width, height, background);
         // respond to input
@@ -157,6 +167,7 @@ public class Main extends Application {
         }
         // with images can only check bounding
         checkPaddleCollision();
+        checkBrickCollision();
     }
 
     private void checkWallCollision(){
@@ -205,10 +216,16 @@ public class Main extends Application {
                 System.out.println("CENTER");
             }
             bouncerYDir = -1*bouncerYDir;
+            //give the ball a little boost off of the paddle
             myBouncer.setY(myBouncer.getY() + 2*BOUNCER_SPEED*bouncerYDir);
         }
     }
 
+    private void checkBrickCollision() {
+        for (int i = 0; i < myBricks.size(); i++){
+
+        }
+    }
     // What to do each time a key is pressed
     private void handleKeyInput (KeyCode code) {
         if (code == KeyCode.RIGHT) {
@@ -216,6 +233,13 @@ public class Main extends Application {
         }
         else if (code == KeyCode.LEFT) {
             myPaddle.setX(myPaddle.getX() - PADDLE_SPEED);
+        }
+        else if (code == KeyCode.R) {
+            myPaddle.setX(SIZE/2 - myPaddle.getBoundsInLocal().getWidth() / 2);
+            myPaddle.setY(SIZE - myPaddle.getBoundsInLocal().getHeight() - 5);
+            myBouncer.setX(SIZE/2 - myBouncer.getBoundsInLocal().getWidth() / 2);
+            myBouncer.setY(SIZE - myBouncer.getBoundsInLocal().getHeight() - myPaddle.getBoundsInLocal().getHeight() - 10);
+            bouncerYDir = -1;
         }
         // NEW Java 12 syntax that some prefer (but watch out for the many special cases!)
         //   https://blog.jetbrains.com/idea/2019/02/java-12-and-intellij-idea/
