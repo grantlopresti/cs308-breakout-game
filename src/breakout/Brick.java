@@ -25,5 +25,14 @@ public class Brick extends ImageView{
         myHits = hits;
     }
 
+    public double[] getPositions() {
+        double[] positions = new double[4];
+        positions[0] = getBoundsInParent().getMinX();
+        positions[1] = getBoundsInParent().getMaxX();
+        positions[2] = getBoundsInParent().getMinY();
+        positions[3] = getBoundsInParent().getMaxY();
+        return positions;
+    }
+
 
 }

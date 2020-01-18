@@ -37,17 +37,19 @@ public class Main extends Application {
     public static final Paint HIGHLIGHT = Color.OLIVEDRAB;
     public static final String BOUNCER_IMAGE = "ball.gif";
     public static final String PADDLE_IMAGE = "paddle.gif";
+    public static final String BRICK_IMAGE_0 = "brick3.gif";
     public static final String BRICK_IMAGE_1 = "brick8.gif";
     public static final String BRICK_IMAGE_2 = "brick7.gif";
     public static final String BRICK_IMAGE_3 = "brick9.gif";
+    public static final String BRICK_IMAGE_4 = "brick6.gif";
+    public static final String LEVEL_ONE_BRICKS = "resources/levelOneBricks.txt";
+    public static final String LEVEL_TWO_BRICKS = "resources/levelTwoBricks.txt";
+    public static final String LEVEL_THREE_BRICKS = "resources/levelThreeBricks.txt";
     public static final int PADDLE_SPEED = 10;
     public static final int BOUNCER_SPEED = 2;
     public static final int BRICK_SPACING = 5;
-    public static final Paint MOVER_COLOR = Color.PLUM;
-    public static final int MOVER_SIZE = 50;
-    public static final Paint GROWER_COLOR = Color.BISQUE;
-    public static final double GROWER_RATE = 1.1;
-    public static final int GROWER_SIZE = 50;
+    public static final int MAX_BRICKS_TALL = 8;
+    public static final int MAX_BRICKS_WIDE = 6;
 
     // some things needed to remember during game
     private Scene myScene;
@@ -82,40 +84,17 @@ public class Main extends Application {
     private Scene setupGame (int width, int height, Paint background) throws FileNotFoundException {
         // create one top level collection to organize the things in the scene
         Group root = new Group();
-        //Read text file
-        File file = new File("levelOneBricks.txt");
-        Scanner sc = new Scanner(file);
-        while (sc.hasNextLine()) {
-            System.out.println(sc.nextLine());
-        }
-        // make some shapes and set their properties
-        double brickHeight = 20.0;
-        int numRows = 4;
-        for (int i = 0; i < numRows; i++){
-            createBricksRow(BRICK_SPACING*(i+1) + (int)brickHeight*i);
-        }
-        Image bouncerImage = new Image(this.getClass().getClassLoader().getResourceAsStream(BOUNCER_IMAGE));
-        myBouncer = new ImageView(bouncerImage);
-        Image paddleImage = new Image(this.getClass().getClassLoader().getResourceAsStream(PADDLE_IMAGE));
-        myPaddle = new ImageView(paddleImage);
-        // x and y represent the top left corner, so center it in windoW
-        myBouncer.setX(width / 2 - myBouncer.getBoundsInLocal().getWidth() / 2);
-        myBouncer.setY(height - myPaddle.getBoundsInLocal().getHeight() - myBouncer.getBoundsInLocal().getHeight() /2);
-        myPaddle.setX(width / 2 - myPaddle.getBoundsInLocal().getWidth() / 2);
-        myPaddle.setY(height - myPaddle.getBoundsInLocal().getHeight() - 5);
-        myMover = new Rectangle(width / 2 - MOVER_SIZE / 2, height / 2 - 100, MOVER_SIZE, MOVER_SIZE);
-        myMover.setFill(MOVER_COLOR);
-        myGrower = new Rectangle(width / 2 - GROWER_SIZE / 2, height / 2 + 50, GROWER_SIZE, GROWER_SIZE);
-        myGrower.setFill(GROWER_COLOR);
+        makeBricksFromFile(LEVEL_ONE_BRICKS);
+        myBouncer = new ImageView(new Image(this.getClass().getClassLoader().getResourceAsStream(BOUNCER_IMAGE)));
+        myPaddle = new ImageView(new Image(this.getClass().getClassLoader().getResourceAsStream(PADDLE_IMAGE)));
+        // x and y represent the top left corner, so center it in window
+        initializePaddleAndBouncerPositions(width, height);
         // order added to the group is the order in which they are drawn
         root.getChildren().add(myBouncer);
-        root.getChildren().add(myMover);
-        root.getChildren().add(myGrower);
         root.getChildren().add(myPaddle);
         for (int i = 0; i < myBricks.size(); i++){
             root.getChildren().add(myBricks.get(i));
         }
-
         // create a place to see the shapes
         Scene scene = new Scene(root, width, height, background);
         // respond to input
@@ -124,24 +103,53 @@ public class Main extends Application {
         return scene;
     }
 
-    private void createBricksRow(int height){
+    private void initializePaddleAndBouncerPositions(int width, int height) {
+        myBouncer.setX(width / 2 - myBouncer.getBoundsInLocal().getWidth() / 2);
+        myBouncer.setY(height - myPaddle.getBoundsInLocal().getHeight() - myBouncer.getBoundsInLocal().getHeight() /2);
+        myPaddle.setX(width / 2 - myPaddle.getBoundsInLocal().getWidth() / 2);
+        myPaddle.setY(height - myPaddle.getBoundsInLocal().getHeight() - 5);
+    }
+
+    private void makeBricksFromFile(String levelLayoutFile) throws FileNotFoundException {
+        //Read text file
+        File file = new File(levelLayoutFile);
+        Scanner sc = new Scanner(file);
+        int[][] levelBricks = new int[MAX_BRICKS_TALL][MAX_BRICKS_WIDE];
+        for (int i = 0; i < MAX_BRICKS_TALL; i++) {
+            for (int j = 0; j < MAX_BRICKS_WIDE; j++) {
+                levelBricks[i][j] = Integer.parseInt(sc.next());
+            }
+        }
+        // make some shapes and set their properties
+        double brickHeight = 20.0;
+        for (int i = 0; i < MAX_BRICKS_TALL; i++){
+            createBricksRow(BRICK_SPACING*(i+1) + (int)brickHeight*i, levelBricks[i]);
+        }
+    }
+
+    private void createBricksRow(int placementHeight, int[] blockTypes){
         Brick myBrick;
+        Image brickImage0 = new Image(this.getClass().getClassLoader().getResourceAsStream(BRICK_IMAGE_0));
         Image brickImage1 = new Image(this.getClass().getClassLoader().getResourceAsStream(BRICK_IMAGE_1));
         Image brickImage2 = new Image(this.getClass().getClassLoader().getResourceAsStream(BRICK_IMAGE_2));
         Image brickImage3 = new Image(this.getClass().getClassLoader().getResourceAsStream(BRICK_IMAGE_3));
+        Image brickImage4 = new Image(this.getClass().getClassLoader().getResourceAsStream(BRICK_IMAGE_4));
         double brickWidth = 70;
-        int bricksInRow = (int) (SIZE / brickWidth);
-        for (int i = 0; i < bricksInRow; i++){
-            double randomNumber = Math.random();
-            if (randomNumber < 0.8){
+        for (int i = 0; i < MAX_BRICKS_WIDE; i++){
+            int blockType = blockTypes[i];
+            if (blockType == 1) {
                 myBrick = new Brick(brickImage1,1);
-            } else if (randomNumber < 0.9) {
+            } else if (blockType == 2){
                 myBrick = new Brick(brickImage2,2);
-            } else {
+            } else if (blockType == 3) {
                 myBrick = new Brick(brickImage3,3);
+            } else if (blockType == 4){
+                myBrick = new Brick(brickImage4,4);
+            } else {
+                myBrick = new Brick(brickImage0, 0);
             }
             myBrick.setX(BRICK_SPACING*(i+1) + i*brickWidth);
-            myBrick.setY(height);
+            myBrick.setY(placementHeight);
             myBricks.add(myBrick);
         }
 
@@ -151,21 +159,6 @@ public class Main extends Application {
     private void step (double elapsedTime) {
         // update "actors" attributes
         checkWallCollision();
-        myMover.setRotate(myMover.getRotate() - 1);
-        myGrower.setRotate(myGrower.getRotate() + 1);
-
-        // check for collisions
-        // with shapes, can check precisely
-        // NEW Java 10 syntax that simplifies things (but watch out it can make code harder to understand)
-        // var intersection = Shape.intersect(myMover, myGrower);
-        Shape intersection = Shape.intersect(myMover, myGrower);
-        if (intersection.getBoundsInLocal().getWidth() != -1) {
-            myMover.setFill(HIGHLIGHT);
-        }
-        else {
-            myMover.setFill(MOVER_COLOR);
-        }
-        // with images can only check bounding
         checkPaddleCollision();
         checkBrickCollision();
     }
@@ -222,7 +215,13 @@ public class Main extends Application {
     }
 
     private void checkBrickCollision() {
+        double minBallX = myBouncer.getBoundsInParent().getMinX();
+        double maxBallX = myBouncer.getBoundsInParent().getMaxX();
+        double minBallY = myBouncer.getBoundsInParent().getMinY();
+        double maxBallY = myBouncer.getBoundsInParent().getMaxY();
         for (int i = 0; i < myBricks.size(); i++){
+            double[] brickPosition = myBricks.get(i).getPositions();
+            
 
         }
     }
@@ -254,10 +253,7 @@ public class Main extends Application {
 
     // What to do each time a key is pressed
     private void handleMouseInput (double x, double y) {
-        if (myGrower.contains(x, y)) {
-            myGrower.setScaleX(myGrower.getScaleX() * GROWER_RATE);
-            myGrower.setScaleY(myGrower.getScaleY() * GROWER_RATE);
-        }
+
     }
 
     /**
