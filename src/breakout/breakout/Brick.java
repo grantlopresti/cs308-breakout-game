@@ -18,16 +18,38 @@ import javafx.util.Duration;
 import java.util.ArrayList;
 
 public class Brick extends MovingObject {
+    public static final double POWER_UP_PROBABILITY = 1.0;
     public int myHits;
+    public PowerUp myPowerUp;
     public boolean moving = false;
+    public boolean hasPowerUp = false;
 
     public Brick(Image image, int hits) {
         super(image);
         myHits = hits;
+
+        //gives the block a PowerUp with a 10% chance
+        determinePowerUp();
+
+        //decodes hits==4 as a moving block with 2 hits to break
         if (hits == 4) {
-            moving = true;
-            setXDir(1);
-            myHits = 2;
+            handleMovingBlock();
         }
+    }
+
+    public void addPowerUp(PowerUp powerUp){
+        myPowerUp = powerUp;
+    }
+
+    private void determinePowerUp() {
+        if (Math.random() < POWER_UP_PROBABILITY){
+            hasPowerUp = true;
+        }
+    }
+
+    private void handleMovingBlock() {
+        moving = true;
+        setXDir(1);
+        myHits = 2;
     }
 }

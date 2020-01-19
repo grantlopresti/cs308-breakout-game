@@ -15,6 +15,7 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.Objects;
 import java.util.Scanner;
 import javafx.scene.text.*;
 import java.util.ArrayList;
@@ -42,6 +43,9 @@ public class Main extends Application {
     public static final String BRICK_IMAGE_2 = "brick7.gif";
     public static final String BRICK_IMAGE_3 = "brick9.gif";
     public static final String BRICK_IMAGE_4 = "brick6.gif";
+    public static final String POWER_UP_IMAGE_0 = "sizepower.gif";
+    public static final String POWER_UP_IMAGE_1 = "laserpower.gif";
+    public static final String POWER_UP_IMAGE_2 = "pointspower.gif";
     public static final String LEVEL_ONE_BRICKS = "resources/levelOneBricks.txt";
     public static final String LEVEL_TWO_BRICKS = "resources/levelTwoBricks.txt";
     public static final String LEVEL_THREE_BRICKS = "resources/levelThreeBricks.txt";
@@ -64,7 +68,6 @@ public class Main extends Application {
     public static Text playerPointsTxt;
 
     //myFirst.setOnKeyPressed(e -> stage.setScene(myScene));
-
 
     /**
      * Initialize what will be displayed and how it will be updated.
@@ -96,6 +99,7 @@ public class Main extends Application {
         playerLivesTxt.setFont(Font.font("Verdana", FontWeight.BOLD, 20));
         playerPointsTxt.setFont(Font.font("Verdana", FontWeight.BOLD, 20));
         makeBricksFromFile(LEVEL_TWO_BRICKS);
+        makePowerUps();
         myBall = new Bouncer(new Image(this.getClass().getClassLoader().getResourceAsStream(BOUNCER_IMAGE)));
         myPaddle = new ImageView(new Image(this.getClass().getClassLoader().getResourceAsStream(PADDLE_IMAGE)));
         // x and y represent the top left corner, so center it in window
@@ -107,6 +111,9 @@ public class Main extends Application {
         root.getChildren().add(myBall);
         root.getChildren().add(myPaddle);
         for (int i = 0; i < myBricks.size(); i++){
+            //Add powerUps underneath bricks]
+            root.getChildren().add(myBricks.get(i).myPowerUp);
+            //Add bricks to root
             root.getChildren().add(myBricks.get(i));
         }
         // create a place to see the shapes
@@ -115,6 +122,35 @@ public class Main extends Application {
         scene.setOnKeyPressed(e -> handleKeyInput(e.getCode()));
         scene.setOnMouseClicked(e -> handleMouseInput(e.getX(), e.getY()));
         return scene;
+    }
+
+    private void makePowerUps(){
+        Image powerUpImage0 = new Image(Objects.requireNonNull(this.getClass().getClassLoader().getResourceAsStream(POWER_UP_IMAGE_0)));
+        Image powerUpImage1 = new Image(Objects.requireNonNull(this.getClass().getClassLoader().getResourceAsStream(POWER_UP_IMAGE_1)));
+        Image powerUpImage2 = new Image(Objects.requireNonNull(this.getClass().getClassLoader().getResourceAsStream(POWER_UP_IMAGE_2)));
+        for (Brick myBrick:myBricks) {
+            if (myBrick.hasPowerUp){
+                double centerX = myBrick.getX() + myBrick.getBoundsInParent().getWidth()/2;
+                double centerY = myBrick.getY() + myBrick.getBoundsInParent().getHeight()/2;
+                int powerUpType;
+                Image image;
+                double tempRandom = Math.random();
+                if (tempRandom < 1.0/3){
+                    powerUpType = 0;
+                    image = powerUpImage0;
+                } else if (tempRandom < 2.0/3){
+                    powerUpType = 1;
+                    image = powerUpImage1;
+                } else {
+                    powerUpType = 2;
+                    image = powerUpImage2;
+                }
+                PowerUp myPowerUp = new PowerUp(image, powerUpType);
+                myPowerUp.setX(centerX - myPowerUp.getBoundsInParent().getWidth()/2);
+                myPowerUp.setY(centerY - myPowerUp.getBoundsInParent().getHeight()/2);
+                myBrick.addPowerUp(myPowerUp);
+            }
+        }
     }
 
     private void initializePaddleAndBouncerPositions(int width, int height) {
@@ -142,7 +178,7 @@ public class Main extends Application {
     }
 
     private void createBricksRow(int placementHeight, int[] blockTypes){
-        breakout.Brick myBrick;
+        Brick myBrick;
         Image brickImage0 = new Image(this.getClass().getClassLoader().getResourceAsStream(BRICK_IMAGE_0));
         Image brickImage1 = new Image(this.getClass().getClassLoader().getResourceAsStream(BRICK_IMAGE_1));
         Image brickImage2 = new Image(this.getClass().getClassLoader().getResourceAsStream(BRICK_IMAGE_2));
@@ -152,13 +188,13 @@ public class Main extends Application {
         for (int i = 0; i < MAX_BRICKS_WIDE; i++){
             int blockType = blockTypes[i];
             if (blockType == 1) {
-                myBrick = new breakout.Brick(brickImage1,1);
+                myBrick = new Brick(brickImage1,1);
             } else if (blockType == 2){
-                myBrick = new breakout.Brick(brickImage2,2);
+                myBrick = new Brick(brickImage2,2);
             } else if (blockType == 3) {
-                myBrick = new breakout.Brick(brickImage3,3);
+                myBrick = new Brick(brickImage3,3);
             } else if (blockType == 4){
-                myBrick = new breakout.Brick(brickImage4,4);
+                myBrick = new Brick(brickImage4,4);
             } else {
                 myBrick = new Brick(brickImage0, 0);
             }
@@ -173,7 +209,12 @@ public class Main extends Application {
     private void step (double elapsedTime) {
         // update "actors" attributes
         checkWallCollision((MovingObject) myBall);
-        checkPaddleCollision();
+        checkPaddleCollision((MovingObject) myBall);
+        for (int i = 0; i < myBricks.size(); i++){
+            if (myBricks.get(i).hasPowerUp) {
+                checkPaddleCollision(myBricks.get(i).myPowerUp);
+            }
+        }
         makeMovingBricksMove();
         checkBrickCollision();
     }
@@ -211,33 +252,47 @@ public class Main extends Application {
         object.setY(object.getY() + MOVING_OBJECT_SPEED *object.yDir);
     }
 
-    private void checkPaddleCollision () {
-        double ballMinX = myBall.getBoundsInParent().getMinX();
-        double ballMaxX = myBall.getBoundsInParent().getMaxX();
-        double ballMaxY = myBall.getBoundsInParent().getMaxY();
+    private void checkPaddleCollision (MovingObject object) {
+        double objMinX = object.getBoundsInParent().getMinX();
+        double objMaxX = object.getBoundsInParent().getMaxX();
+        double objMaxY = object.getBoundsInParent().getMaxY();
         double paddleMinX = myPaddle.getBoundsInParent().getMinX();
         double paddleMaxX = myPaddle.getBoundsInParent().getMaxX();
         double paddleMinY = myPaddle.getBoundsInParent().getMinY();
 
         double paddleWidth = paddleMaxX - paddleMinX;
-        boolean onPaddleLevel = ballMaxY >= paddleMinY;
-        boolean ballIntersectsPaddle = onPaddleLevel && ballMaxX >= paddleMinX && ballMinX <= paddleMaxX;
-        boolean intersectsLeft = ballMaxX <= paddleMinX + (paddleWidth / 3) && onPaddleLevel;
-        boolean intersectsRight = ballMinX >= paddleMaxX - (paddleWidth / 3) && onPaddleLevel;
+        boolean onPaddleLevel = objMaxY >= paddleMinY;
+        boolean objIntersectsPaddle = onPaddleLevel && objMaxX >= paddleMinX && objMinX <= paddleMaxX;
 
-        if (ballIntersectsPaddle){
-            if (intersectsLeft){
-                System.out.println("LEFT");
-                ((MovingObject)myBall).setXDir(-1);
-            } else if (intersectsRight) {
-                System.out.println("RIGHT");
-                ((MovingObject)myBall).setXDir(1);
-            } else {
-                System.out.println("CENTER");
+        if (objIntersectsPaddle){
+            if (object instanceof Bouncer) {
+                boolean intersectsLeft = objMaxX <= paddleMinX + (paddleWidth / 3);
+                boolean intersectsRight = objMinX >= paddleMaxX - (paddleWidth / 3);
+                if (intersectsLeft) {
+                    System.out.println("LEFT");
+                    (object).setXDir(-1);
+                } else if (intersectsRight) {
+                    System.out.println("RIGHT");
+                    (object).setXDir(1);
+                } else {
+                    System.out.println("CENTER");
+                }
+                (object).setYDir(-1 * (object).yDir);
+                //give the ball a little boost off of the paddle
+                object.setY(object.getY() + 2 * MOVING_OBJECT_SPEED * object.yDir);
+            } else if (object instanceof PowerUp){
+                if (((PowerUp) object).myType == 0){
+                    //doFirstPowerUp
+                    System.out.println("PowerUp1");
+                } else if (((PowerUp) object).myType == 1){
+                    //doSecondPowerUp
+                    System.out.println("PowerUp2");
+                } else if (((PowerUp) object).myType == 2){
+                    //doThirdPowerUp
+                    System.out.println("PowerUp3");
+                }
+                ((PowerUp) object).setMoving(false);
             }
-            ((MovingObject)myBall).setYDir(-1*((MovingObject)myBall).yDir);
-            //give the ball a little boost off of the paddle
-            myBall.setY(myBall.getY() + 2* MOVING_OBJECT_SPEED *((MovingObject)myBall).yDir);
         }
     }
 
@@ -246,20 +301,24 @@ public class Main extends Application {
         double maxBallX = myBall.getBoundsInParent().getMaxX();
         double minBallY = myBall.getBoundsInParent().getMinY();
         double maxBallY = myBall.getBoundsInParent().getMaxY();
-        for (int i = 0; i < myBricks.size(); i++){
-            boolean doesIntersect = myBall.getBoundsInParent().intersects(myBricks.get(i).getBoundsInParent());
+        for (Brick myBrick : myBricks) {
+            boolean doesIntersect = myBall.getBoundsInParent().intersects(myBrick.getBoundsInParent());
             if (doesIntersect) {
-                myBricks.get(i).myHits -= 1;
-                ((MovingObject)myBall).setYDir(1);
+                myBrick.myHits -= 1;
+                ((MovingObject) myBall).setYDir(1);
                 playerPoints += 100;
                 playerPointsTxt.setText("Points: " + playerPoints);
             }
-            updateBrick(myBricks.get(i));
+            updateBrick(myBrick);
         }
     }
 
     private void updateBrick(Brick myBrick) {
         if (myBrick.myHits <= 0){
+            if (myBrick.hasPowerUp){
+                //myPowerUps.get(myBrick.id).setMoving(true);
+            }
+            //moves brick off screen
             myBrick.setX(1000);
             myBrick.setY(1000);
         }
@@ -274,9 +333,9 @@ public class Main extends Application {
             myPaddle.setX(myPaddle.getX() - PADDLE_SPEED);
         }
         else if (code == KeyCode.R) {
-            myPaddle.setX(SIZE/2 - myPaddle.getBoundsInLocal().getWidth() / 2);
+            myPaddle.setX(SIZE/2.0 - myPaddle.getBoundsInLocal().getWidth() / 2);
             myPaddle.setY(SIZE + STATUS_BAR_HEIGHT - myPaddle.getBoundsInLocal().getHeight() - 5);
-            myBall.setX(SIZE/2 - myBall.getBoundsInLocal().getWidth() / 2);
+            myBall.setX(SIZE/2.0 - myBall.getBoundsInLocal().getWidth() / 2);
             myBall.setY(SIZE + STATUS_BAR_HEIGHT - myBall.getBoundsInLocal().getHeight() - myPaddle.getBoundsInLocal().getHeight() - 10);
             ((MovingObject)myBall).setYDir(-1);
             ((MovingObject)myBall).setXDir(1);
