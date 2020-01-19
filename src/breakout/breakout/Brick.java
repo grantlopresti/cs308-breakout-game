@@ -18,7 +18,7 @@ import javafx.util.Duration;
 import java.util.ArrayList;
 
 public class Brick extends MovingObject {
-    public static final double POWER_UP_PROBABILITY = 1.0;
+    public static final double POWER_UP_PROBABILITY = 0.1;
     public int myHits;
     public PowerUp myPowerUp;
     public boolean moving = false;
@@ -42,7 +42,7 @@ public class Brick extends MovingObject {
     }
 
     private void determinePowerUp() {
-        if (Math.random() < POWER_UP_PROBABILITY){
+        if (myHits > 0 && myHits != 4 && Math.random() < POWER_UP_PROBABILITY){
             hasPowerUp = true;
         }
     }
