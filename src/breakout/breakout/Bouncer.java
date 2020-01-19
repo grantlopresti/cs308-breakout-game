@@ -17,7 +17,7 @@ import javafx.util.Duration;
 
 import java.util.ArrayList;
 
-public class Bouncer extends breakout.MovingObject {
+public class Bouncer extends MovingObject {
     public Bouncer(Image image) {
         super(image);
     }

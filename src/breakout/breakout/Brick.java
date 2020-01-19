@@ -17,17 +17,17 @@ import javafx.util.Duration;
 
 import java.util.ArrayList;
 
-public class Brick extends breakout.MovingObject {
+public class Brick extends MovingObject {
     public int myHits;
     public boolean moving = false;
-    public int xDir = 0;
 
     public Brick(Image image, int hits) {
         super(image);
         myHits = hits;
         if (hits == 4) {
             moving = true;
-            xDir = 1;
+            setXDir(1);
+            myHits = 2;
         }
     }
 }

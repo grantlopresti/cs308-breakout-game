@@ -46,7 +46,7 @@ public class Main extends Application {
     public static final String LEVEL_TWO_BRICKS = "resources/levelTwoBricks.txt";
     public static final String LEVEL_THREE_BRICKS = "resources/levelThreeBricks.txt";
     public static final int PADDLE_SPEED = 10;
-    public static final int BOUNCER_SPEED = 2;
+    public static final int MOVING_OBJECT_SPEED = 2;
     public static final int BRICK_SPACING = 5;
     public static final int MAX_BRICKS_TALL = 8;
     public static final int MAX_BRICKS_WIDE = 6;
@@ -96,7 +96,7 @@ public class Main extends Application {
         playerLivesTxt.setFont(Font.font("Verdana", FontWeight.BOLD, 20));
         playerPointsTxt.setFont(Font.font("Verdana", FontWeight.BOLD, 20));
         makeBricksFromFile(LEVEL_TWO_BRICKS);
-        myBall = new breakout.Bouncer(new Image(this.getClass().getClassLoader().getResourceAsStream(BOUNCER_IMAGE)));
+        myBall = new Bouncer(new Image(this.getClass().getClassLoader().getResourceAsStream(BOUNCER_IMAGE)));
         myPaddle = new ImageView(new Image(this.getClass().getClassLoader().getResourceAsStream(PADDLE_IMAGE)));
         // x and y represent the top left corner, so center it in window
         initializePaddleAndBouncerPositions(width, height);
@@ -172,7 +172,7 @@ public class Main extends Application {
     // Note, there are more sophisticated ways to animate shapes, but these simple ways work fine to start
     private void step (double elapsedTime) {
         // update "actors" attributes
-        checkWallCollision(myBall);
+        checkWallCollision((MovingObject) myBall);
         checkPaddleCollision();
         makeMovingBricksMove();
         checkBrickCollision();
@@ -181,12 +181,12 @@ public class Main extends Application {
     private void makeMovingBricksMove() {
         for (int i = 0; i < myBricks.size(); i++) {
             if (myBricks.get(i).moving) {
-                myBricks.get(i).setX(myBricks.get(i).getX() + MOVING_BRICK_SPEED*myBricks.get(i).xDir);
+                checkWallCollision(myBricks.get(i));
             }
         }
     }
 
-    private void checkWallCollision(breakout.MovingObject object){
+    private void checkWallCollision(MovingObject object){
         double minX = object.getBoundsInParent().getMinX();
         double maxX = object.getBoundsInParent().getMaxX();
         double minY = object.getBoundsInParent().getMinY();
@@ -195,19 +195,20 @@ public class Main extends Application {
         if (maxX >= SIZE || minX <= 0){
             object.setXDir(-1*object.xDir);
         }
-        if (minY <= STATUS_BAR_HEIGHT ){
-            object.setYDir(-1*object.yDir);
+        if (object instanceof Bouncer) {
+            if (minY <= STATUS_BAR_HEIGHT ){
+                object.setYDir(-1*object.yDir);
+            }
+            if (maxY >= WINDOW_HEIGHT){
+                object.setXDir(0);
+                object.setYDir(0);
+                playerLives -= 1;
+                playerLivesTxt.setText("Lives: " + playerLives);
+                object.setY(WINDOW_HEIGHT - object.getBoundsInParent().getHeight() - 5);
+            }
         }
-        if (maxY >= WINDOW_HEIGHT){
-            object.setXDir(0);
-            object.setYDir(0);
-            playerLives -= 1;
-            playerLivesTxt.setText("Lives: " + playerLives);
-            object.setY(WINDOW_HEIGHT - object.getBoundsInParent().getHeight() - 5);
-        }
-
-        object.setX(object.getX() + BOUNCER_SPEED*object.xDir);
-        object.setY(object.getY() + BOUNCER_SPEED*object.yDir);
+        object.setX(object.getX() + MOVING_OBJECT_SPEED *object.xDir);
+        object.setY(object.getY() + MOVING_OBJECT_SPEED *object.yDir);
     }
 
     private void checkPaddleCollision () {
@@ -227,16 +228,16 @@ public class Main extends Application {
         if (ballIntersectsPaddle){
             if (intersectsLeft){
                 System.out.println("LEFT");
-                myBall.setXDir(-1);
+                ((MovingObject)myBall).setXDir(-1);
             } else if (intersectsRight) {
                 System.out.println("RIGHT");
-                myBall.setXDir(1);
+                ((MovingObject)myBall).setXDir(1);
             } else {
                 System.out.println("CENTER");
             }
-            myBall.setYDir(-1*myBall.yDir);
+            ((MovingObject)myBall).setYDir(-1*((MovingObject)myBall).yDir);
             //give the ball a little boost off of the paddle
-            myBall.setY(myBall.getY() + 2*BOUNCER_SPEED*myBall.yDir);
+            myBall.setY(myBall.getY() + 2* MOVING_OBJECT_SPEED *((MovingObject)myBall).yDir);
         }
     }
 
@@ -249,7 +250,7 @@ public class Main extends Application {
             boolean doesIntersect = myBall.getBoundsInParent().intersects(myBricks.get(i).getBoundsInParent());
             if (doesIntersect) {
                 myBricks.get(i).myHits -= 1;
-                bouncerYDir = 1;
+                ((MovingObject)myBall).setYDir(1);
                 playerPoints += 100;
                 playerPointsTxt.setText("Points: " + playerPoints);
             }
@@ -277,8 +278,8 @@ public class Main extends Application {
             myPaddle.setY(SIZE + STATUS_BAR_HEIGHT - myPaddle.getBoundsInLocal().getHeight() - 5);
             myBall.setX(SIZE/2 - myBall.getBoundsInLocal().getWidth() / 2);
             myBall.setY(SIZE + STATUS_BAR_HEIGHT - myBall.getBoundsInLocal().getHeight() - myPaddle.getBoundsInLocal().getHeight() - 10);
-            bouncerYDir = -1;
-            bouncerXDir = 1;
+            ((MovingObject)myBall).setYDir(-1);
+            ((MovingObject)myBall).setXDir(1);
         }
         // NEW Java 12 syntax that some prefer (but watch out for the many special cases!)
         //   https://blog.jetbrains.com/idea/2019/02/java-12-and-intellij-idea/
