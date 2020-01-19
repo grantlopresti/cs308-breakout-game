@@ -1,3 +1,5 @@
+package breakout;
+
 public class Positions {
     double xMin;
     double xMax;

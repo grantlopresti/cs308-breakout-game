@@ -17,17 +17,8 @@ import javafx.util.Duration;
 
 import java.util.ArrayList;
 
-public class Brick extends breakout.MovingObject {
-    public int myHits;
-    public boolean moving = false;
-    public int xDir = 0;
-
-    public Brick(Image image, int hits) {
+public class Bouncer extends breakout.MovingObject {
+    public Bouncer(Image image) {
         super(image);
-        myHits = hits;
-        if (hits == 4) {
-            moving = true;
-            xDir = 1;
-        }
     }
 }
