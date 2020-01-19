@@ -34,8 +34,10 @@ public class Main extends Application {
     public static final int FRAMES_PER_SECOND = 60;
     public static final int MILLISECOND_DELAY = 1000 / FRAMES_PER_SECOND;
     public static final double SECOND_DELAY = 1.0 / FRAMES_PER_SECOND;
+    public static final Paint SPLASH_SCREEN_BACKGROUND = Color.LIGHTGOLDENRODYELLOW;
     public static final Paint LEVEL_ONE_BACKGROUND = Color.MEDIUMPURPLE;
     public static final Paint LEVEL_TWO_BACKGROUND = Color.MEDIUMPURPLE;
+    public static final Paint LEVEL_THREE_BACKGROUND = Color.MEDIUMPURPLE;
     public static final String BOUNCER_IMAGE = "ball.gif";
     public static final String PADDLE_IMAGE = "paddle.gif";
     public static final String BRICK_IMAGE_0 = "brick3.gif";
@@ -76,12 +78,12 @@ public class Main extends Application {
     @Override
     public void start (Stage stage) throws FileNotFoundException {
         // attach scene to the stage and display it
-        splashScreen = setupSplashScreen(LEVEL_ONE_BACKGROUND);
+        splashScreen = setupSplashScreen(SPLASH_SCREEN_BACKGROUND);
         stage.setScene(splashScreen);
         stage.setTitle(TITLE);
         stage.show();
-
         levelOne = setupGame(LEVEL_ONE_BACKGROUND);
+        splashScreen.setOnMouseClicked(e -> stage.setScene(levelOne));
         splashScreen.setOnKeyPressed(e -> stage.setScene(levelOne));
         // attach "game loop" to timeline to play it (basically just calling step() method repeatedly forever)
         KeyFrame frame = new KeyFrame(Duration.millis(MILLISECOND_DELAY), e -> step(SECOND_DELAY));
@@ -287,11 +289,11 @@ public class Main extends Application {
         double maxY = object.getBoundsInParent().getMaxY();
 
         if (maxX >= SIZE || minX <= 0){
-            object.setXDir(-1*object.xDir);
+            object.setXDir(-1*object.xVelocity);
         }
         if (object instanceof Bouncer) {
             if (minY <= STATUS_BAR_HEIGHT ){
-                object.setYDir(-1*object.yDir);
+                object.setYDir(-1*object.yVelocity);
             }
             if (maxY >= WINDOW_HEIGHT){
                 object.setXDir(0);
@@ -301,8 +303,8 @@ public class Main extends Application {
                 object.setY(WINDOW_HEIGHT - object.getBoundsInParent().getHeight() - 5);
             }
         }
-        object.setX(object.getX() + MOVING_OBJECT_SPEED *object.xDir);
-        object.setY(object.getY() + MOVING_OBJECT_SPEED *object.yDir);
+        object.setX(object.getX() + MOVING_OBJECT_SPEED *object.xVelocity);
+        object.setY(object.getY() + MOVING_OBJECT_SPEED *object.yVelocity);
     }
 
     private void checkPaddleCollision (MovingObject object) {
@@ -350,9 +352,9 @@ public class Main extends Application {
         } else if (intersectsRight) {
             (object).setXDir(1);
         }
-        (object).setYDir(-1 * (object).yDir);
+        (object).setYDir(-1 * (object).yVelocity);
         //give the ball a little boost off of the paddle
-        object.setY(object.getY() + 2 * MOVING_OBJECT_SPEED * object.yDir);
+        object.setY(object.getY() + 2 * MOVING_OBJECT_SPEED * object.yVelocity);
     }
 
     private void checkBrickCollision() {
