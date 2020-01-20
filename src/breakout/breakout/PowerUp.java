@@ -4,10 +4,10 @@ import javafx.scene.image.Image;
 
 public class PowerUp extends MovingObject {
     public boolean moving = false;
-    public int myType;
-    public double yVel = 0.4;
+    public String myType;
+    public double yVel = 0.5;
 
-    public PowerUp(Image image, int powerUpType) {
+    public PowerUp(Image image, String powerUpType) {
         super(image);
         myType = powerUpType;
     }
