@@ -35,9 +35,7 @@ public class Main extends Application {
     public static final int MILLISECOND_DELAY = 1000 / FRAMES_PER_SECOND;
     public static final double SECOND_DELAY = 1.0 / FRAMES_PER_SECOND;
     public static final Paint SPLASH_SCREEN_BACKGROUND = Color.LIGHTGOLDENRODYELLOW;
-    public static final Paint LEVEL_ONE_BACKGROUND = Color.MEDIUMPURPLE;
-    public static final Paint LEVEL_TWO_BACKGROUND = Color.MEDIUMPURPLE;
-    public static final Paint LEVEL_THREE_BACKGROUND = Color.MEDIUMPURPLE;
+    public static final Paint LEVEL_SCREEN_BACKGROUND = Color.MEDIUMPURPLE;
     public static final String BOUNCER_IMAGE = "ball.gif";
     public static final String PADDLE_IMAGE = "paddle.gif";
     public static final String BRICK_IMAGE_0 = "brick3.gif";
@@ -52,14 +50,12 @@ public class Main extends Application {
     public static final String LEVEL_TWO_BRICKS = "resources/levelTwoBricks.txt";
     public static final String LEVEL_THREE_BRICKS = "resources/levelThreeBricks.txt";
     public static final int PADDLE_SPEED = 10;
-    public static final int MOVING_OBJECT_SPEED = 2;
+    public static final int MOVING_OBJECT_SPEED = 3;
     public static final int BRICK_SPACING = 5;
     public static final int MAX_BRICKS_TALL = 8;
     public static final int MAX_BRICKS_WIDE = 6;
 
-    // some things needed to remember during game
-    private Scene splashScreen;
-    private Scene levelOne;
+    private Scene levelScreen;
     private ImageView myBall;
     private ImageView myPaddle;
     private Rectangle myStatusBar = new Rectangle(0, 0, SIZE, STATUS_BAR_HEIGHT);
@@ -68,6 +64,9 @@ public class Main extends Application {
     private static int playerPoints = 0;
     private static int numBricksInLevel = 0;
     private static int numBricksBroken = 0;
+    private static int currentLevel = 1;
+    // create one top level collection to organize the things in the scene
+    private Group levelsRoot = new Group();
     public static Text playerLivesTxt;
     public static Text playerPointsTxt;
 
@@ -78,27 +77,34 @@ public class Main extends Application {
     @Override
     public void start (Stage stage) throws FileNotFoundException {
         // attach scene to the stage and display it
-        splashScreen = setupSplashScreen(SPLASH_SCREEN_BACKGROUND);
+        // some things needed to remember during game
+        Scene splashScreen = setupSplashScreen();
         stage.setScene(splashScreen);
         stage.setTitle(TITLE);
         stage.show();
-        levelOne = setupGame(LEVEL_ONE_BACKGROUND);
-        splashScreen.setOnMouseClicked(e -> stage.setScene(levelOne));
-        splashScreen.setOnKeyPressed(e -> stage.setScene(levelOne));
+        levelScreen = setupGame();
+        splashScreen.setOnMouseClicked(e -> stage.setScene(levelScreen));
+        splashScreen.setOnKeyPressed(e -> stage.setScene(levelScreen));
         // attach "game loop" to timeline to play it (basically just calling step() method repeatedly forever)
-        KeyFrame frame = new KeyFrame(Duration.millis(MILLISECOND_DELAY), e -> step(SECOND_DELAY));
+        KeyFrame frame = new KeyFrame(Duration.millis(MILLISECOND_DELAY), e -> {
+            try {
+                step();
+            } catch (FileNotFoundException ex) {
+                ex.printStackTrace();
+            }
+        });
         Timeline animation = new Timeline();
         animation.setCycleCount(Timeline.INDEFINITE);
         animation.getKeyFrames().add(frame);
         animation.play();
     }
 
-    private Scene setupSplashScreen(Paint background) throws FileNotFoundException {
+    private Scene setupSplashScreen() throws FileNotFoundException {
         // create one top level collection to organize the things in the scene
         Group root = new Group();
         //create and format text in status bar
-        Text welcomeTxt = new Text(10, SIZE/2, "Welcome to Breakout!");
-        Text subTxt = new Text(100,  SIZE/2 + 50,  "Grant LoPresti (gjl13)");
+        Text welcomeTxt = new Text(10, SIZE/2.0, "Welcome to Breakout!");
+        Text subTxt = new Text(100,  SIZE/2.0 + 50,  "Grant LoPresti (gjl13)");
         welcomeTxt.setFont(Font.font("Verdana", FontWeight.BOLD, 35));
         welcomeTxt.setTextAlignment(TextAlignment.CENTER);
         subTxt.setFont(Font.font("Verdana", FontWeight.BOLD, 20));
@@ -107,35 +113,46 @@ public class Main extends Application {
         root.getChildren().add(welcomeTxt);
         root.getChildren().add(subTxt);
         // create a place to see the shapes
-        Scene scene = new Scene(root, Main.SIZE, Main.WINDOW_HEIGHT, background);
+        Scene scene = new Scene(root, Main.SIZE, Main.WINDOW_HEIGHT, Main.SPLASH_SCREEN_BACKGROUND);
         // respond to input`
-        scene.setOnKeyPressed(e -> handleKeyInput(e.getCode()));
+        scene.setOnKeyPressed(e -> {
+            try {
+                handleKeyInput(e.getCode());
+            } catch (FileNotFoundException ex) {
+                ex.printStackTrace();
+            }
+        });
         scene.setOnMouseClicked(e -> handleMouseInput(e.getX(), e.getY()));
         return scene;
     }
 
     // Create the game's "scene": what shapes will be in the game and their starting properties
-    private Scene setupGame(Paint background) throws FileNotFoundException {
-        // create one top level collection to organize the things in the scene
-        Group root = new Group();
+    private Scene setupGame() throws FileNotFoundException {
+        //Creates upper status bar
         myStatusBar.setFill(Color.YELLOW);
         //create and format text in status bar
         playerLivesTxt = new Text(10, 30, "Lives: " + playerLives);
         playerPointsTxt = new Text(SIZE - 150, 30,  "Points: " + playerPoints);
         playerLivesTxt.setFont(Font.font("Verdana", FontWeight.BOLD, 20));
         playerPointsTxt.setFont(Font.font("Verdana", FontWeight.BOLD, 20));
-        makeBricksFromFile(LEVEL_TWO_BRICKS);
+        makeBricksFromFile(LEVEL_ONE_BRICKS);
         makePowerUps();
         myBall = new Bouncer(new Image(Objects.requireNonNull(this.getClass().getClassLoader().getResourceAsStream(BOUNCER_IMAGE))));
         myPaddle = new ImageView(new Image(Objects.requireNonNull(this.getClass().getClassLoader().getResourceAsStream(PADDLE_IMAGE))));
         // x and y represent the top left corner, so center it in window
-        initializePaddleAndBouncerPositions(Main.SIZE, Main.WINDOW_HEIGHT);
+        initializePaddleAndBouncerPositions();
         // order added to the group is the order in which they are drawn
-        addAllObjectsToGameRoot(root);
+        addAllObjectsToGameRoot(levelsRoot);
         // create a place to see the shapes
-        Scene scene = new Scene(root, Main.SIZE, Main.WINDOW_HEIGHT, background);
+        Scene scene = new Scene(levelsRoot, Main.SIZE, Main.WINDOW_HEIGHT, Main.LEVEL_SCREEN_BACKGROUND);
         // respond to input
-        scene.setOnKeyPressed(e -> handleKeyInput(e.getCode()));
+        scene.setOnKeyPressed(e -> {
+            try {
+                handleKeyInput(e.getCode());
+            } catch (FileNotFoundException ex) {
+                ex.printStackTrace();
+            }
+        });
         scene.setOnMouseClicked(e -> handleMouseInput(e.getX(), e.getY()));
         return scene;
     }
@@ -146,11 +163,15 @@ public class Main extends Application {
         root.getChildren().add(playerPointsTxt);
         root.getChildren().add(myBall);
         root.getChildren().add(myPaddle);
-        for (int i = 0; i < myBricks.size(); i++){
+        addBricksAndPowerUpsToRoot(root);
+    }
+
+    private void addBricksAndPowerUpsToRoot(Group root) {
+        for (Brick myBrick : myBricks) {
             //Add powerUps underneath bricks]
-            root.getChildren().add(myBricks.get(i).myPowerUp);
+            root.getChildren().add(myBrick.myPowerUp);
             //Add bricks to root
-            root.getChildren().add(myBricks.get(i));
+            root.getChildren().add(myBrick);
         }
     }
 
@@ -197,11 +218,11 @@ public class Main extends Application {
         return new PowerUp(image, powerUpType);
     }
 
-    private void initializePaddleAndBouncerPositions(int width, int height) {
-        myBall.setX(width / 2 - myBall.getBoundsInLocal().getWidth() / 2);
-        myBall.setY(height - myPaddle.getBoundsInLocal().getHeight() - myBall.getBoundsInLocal().getHeight() /2);
-        myPaddle.setX(width / 2 - myPaddle.getBoundsInLocal().getWidth() / 2);
-        myPaddle.setY(height - myPaddle.getBoundsInLocal().getHeight() - 5);
+    private void initializePaddleAndBouncerPositions() {
+        myBall.setX(Main.SIZE / 2.0 - myBall.getBoundsInLocal().getWidth() / 2);
+        myBall.setY(Main.WINDOW_HEIGHT - myPaddle.getBoundsInLocal().getHeight() - myBall.getBoundsInLocal().getHeight() /2);
+        myPaddle.setX(Main.SIZE / 2.0 - myPaddle.getBoundsInLocal().getWidth() / 2);
+        myPaddle.setY(Main.WINDOW_HEIGHT - myPaddle.getBoundsInLocal().getHeight() - 5);
     }
 
     private void makeBricksFromFile(String levelLayoutFile) throws FileNotFoundException {
@@ -223,11 +244,11 @@ public class Main extends Application {
 
     private void createBricksRow(int placementHeight, int[] blockTypes){
         Brick myBrick;
-        Image brickImage0 = new Image(this.getClass().getClassLoader().getResourceAsStream(BRICK_IMAGE_0));
-        Image brickImage1 = new Image(this.getClass().getClassLoader().getResourceAsStream(BRICK_IMAGE_1));
-        Image brickImage2 = new Image(this.getClass().getClassLoader().getResourceAsStream(BRICK_IMAGE_2));
-        Image brickImage3 = new Image(this.getClass().getClassLoader().getResourceAsStream(BRICK_IMAGE_3));
-        Image brickImage4 = new Image(this.getClass().getClassLoader().getResourceAsStream(BRICK_IMAGE_4));
+        Image brickImage0 = new Image(Objects.requireNonNull(this.getClass().getClassLoader().getResourceAsStream(BRICK_IMAGE_0)));
+        Image brickImage1 = new Image(Objects.requireNonNull(this.getClass().getClassLoader().getResourceAsStream(BRICK_IMAGE_1)));
+        Image brickImage2 = new Image(Objects.requireNonNull(this.getClass().getClassLoader().getResourceAsStream(BRICK_IMAGE_2)));
+        Image brickImage3 = new Image(Objects.requireNonNull(this.getClass().getClassLoader().getResourceAsStream(BRICK_IMAGE_3)));
+        Image brickImage4 = new Image(Objects.requireNonNull(this.getClass().getClassLoader().getResourceAsStream(BRICK_IMAGE_4)));
         double brickWidth = 70;
         for (int i = 0; i < MAX_BRICKS_WIDE; i++){
             int blockType = blockTypes[i];
@@ -253,7 +274,7 @@ public class Main extends Application {
     }
     // Change properties of shapes in small ways to animate them over time
     // Note, there are more sophisticated ways to animate shapes, but these simple ways work fine to start
-    private void step (double elapsedTime) {
+    private void step() throws FileNotFoundException {
         // update "actors" attributes
         checkWallCollision((MovingObject) myBall);
         checkPaddleCollision((MovingObject) myBall);
@@ -263,21 +284,20 @@ public class Main extends Application {
     }
 
     private void updatePowerUps() {
-        for (int i = 0; i < myBricks.size(); i++){
-            Brick myBrick = myBricks.get(i);
+        for (Brick myBrick : myBricks) {
             PowerUp myPowerUp = myBrick.myPowerUp;
             if (myBrick.hasPowerUp && myBrick.myHits == 0) {
                 myBrick.myPowerUp.setMoving(true);
                 checkPaddleCollision(myBrick.myPowerUp);
-                myPowerUp.setY(myPowerUp.getY() + MOVING_OBJECT_SPEED *myPowerUp.yVel);
+                myPowerUp.setY(myPowerUp.getY() + MOVING_OBJECT_SPEED * myPowerUp.yVel);
             }
         }
     }
 
     private void makeMovingBricksMove() {
-        for (int i = 0; i < myBricks.size(); i++) {
-            if (myBricks.get(i).moving) {
-                checkWallCollision(myBricks.get(i));
+        for (Brick myBrick : myBricks) {
+            if (myBrick.moving) {
+                checkWallCollision(myBrick);
             }
         }
     }
@@ -301,10 +321,17 @@ public class Main extends Application {
                 playerLives -= 1;
                 playerLivesTxt.setText("Lives: " + playerLives);
                 object.setY(WINDOW_HEIGHT - object.getBoundsInParent().getHeight() - 5);
+                if (playerLives <= 0){
+                    playerLosesGame();
+                }
             }
         }
         object.setX(object.getX() + MOVING_OBJECT_SPEED *object.xVelocity);
         object.setY(object.getY() + MOVING_OBJECT_SPEED *object.yVelocity);
+    }
+
+    private void playerLosesGame() {
+        System.out.println("YOU LOST");
     }
 
     private void checkPaddleCollision (MovingObject object) {
@@ -357,7 +384,7 @@ public class Main extends Application {
         object.setY(object.getY() + 2 * MOVING_OBJECT_SPEED * object.yVelocity);
     }
 
-    private void checkBrickCollision() {
+    private void checkBrickCollision() throws FileNotFoundException {
         double minBallX = myBall.getBoundsInParent().getMinX();
         double maxBallX = myBall.getBoundsInParent().getMaxX();
         double minBallY = myBall.getBoundsInParent().getMinY();
@@ -380,8 +407,35 @@ public class Main extends Application {
         }
     }
 
-    private void nextLevel() {
+    private void nextLevel() throws FileNotFoundException {
+        for (Brick myBrick:myBricks){
+            myBrick.setX(1000);
+            myBrick.setY(1000);
+            myBrick.myPowerUp.setX(1000);
+            myBrick.myPowerUp.setY(1000);
+        }
+        myBricks = new ArrayList<Brick>();
+        //Give bonus 3 lives for completing the level
+        playerLives += 3;
+        playerLivesTxt.setText("Lives: " + playerLives);
 
+        if (currentLevel == 1){
+            makeBricksFromFile(LEVEL_TWO_BRICKS);
+        } else if (currentLevel == 2){
+            makeBricksFromFile(LEVEL_THREE_BRICKS);
+        } else if (currentLevel == 3) {
+            winGame();
+        }
+
+        currentLevel ++;
+        makePowerUps();
+        resetBallAndPaddleLocation();
+        addBricksAndPowerUpsToRoot(levelsRoot);
+
+    }
+
+    private void winGame() {
+        System.out.println("YOU WIN");
     }
 
     private void updateBrick(Brick myBrick) {
@@ -396,7 +450,7 @@ public class Main extends Application {
     }
 
     // What to do each time a key is pressed
-    private void handleKeyInput (KeyCode code) {
+    private void handleKeyInput (KeyCode code) throws FileNotFoundException {
         if (code == KeyCode.RIGHT) {
             myPaddle.setX(myPaddle.getX() + PADDLE_SPEED);
         }
@@ -404,12 +458,16 @@ public class Main extends Application {
             myPaddle.setX(myPaddle.getX() - PADDLE_SPEED);
         }
         else if (code == KeyCode.R) {
-            myPaddle.setX(SIZE/2.0 - myPaddle.getBoundsInLocal().getWidth() / 2);
-            myPaddle.setY(SIZE + STATUS_BAR_HEIGHT - myPaddle.getBoundsInLocal().getHeight() - 5);
-            myBall.setX(SIZE/2.0 - myBall.getBoundsInLocal().getWidth() / 2);
-            myBall.setY(SIZE + STATUS_BAR_HEIGHT - myBall.getBoundsInLocal().getHeight() - myPaddle.getBoundsInLocal().getHeight() - 10);
-            ((MovingObject)myBall).setYDir(-1);
-            ((MovingObject)myBall).setXDir(1);
+            resetBallAndPaddleLocation();
+        }
+        else if (code == KeyCode.M) {
+            //assign ball direction/velocity based on mouse click
+        }
+        else if (code == KeyCode.L) {
+            playerLives ++;
+            playerLivesTxt.setText("Lives: " + playerLives);
+        } else if (code == KeyCode.N) {
+            nextLevel();
         }
         // NEW Java 12 syntax that some prefer (but watch out for the many special cases!)
         //   https://blog.jetbrains.com/idea/2019/02/java-12-and-intellij-idea/
@@ -420,6 +478,15 @@ public class Main extends Application {
         //     case UP -> myMover.setY(myMover.getY() - MOVER_SPEED);
         //     case DOWN -> myMover.setY(myMover.getY() + MOVER_SPEED);
         // }
+    }
+
+    private void resetBallAndPaddleLocation() {
+        myPaddle.setX(SIZE/2.0 - myPaddle.getBoundsInLocal().getWidth() / 2);
+        myPaddle.setY(SIZE + STATUS_BAR_HEIGHT - myPaddle.getBoundsInLocal().getHeight() - 5);
+        myBall.setX(SIZE/2.0 - myBall.getBoundsInLocal().getWidth() / 2);
+        myBall.setY(SIZE + STATUS_BAR_HEIGHT - myBall.getBoundsInLocal().getHeight() - myPaddle.getBoundsInLocal().getHeight() - 10);
+        ((MovingObject)myBall).setYDir(-1);
+        ((MovingObject)myBall).setXDir(1);
     }
 
     // What to do each time a key is pressed
