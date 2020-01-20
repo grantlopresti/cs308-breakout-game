@@ -1,21 +1,6 @@
 package breakout;
 
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
-import javafx.application.Application;
-import javafx.scene.Group;
-import javafx.scene.Scene;
 import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.input.KeyCode;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.Paint;
-import javafx.scene.shape.Rectangle;
-import javafx.scene.shape.Shape;
-import javafx.stage.Stage;
-import javafx.util.Duration;
-
-import java.util.ArrayList;
 
 public class Brick extends MovingObject {
     public static final double POWER_UP_PROBABILITY = 0.1;
@@ -23,10 +8,14 @@ public class Brick extends MovingObject {
     public PowerUp myPowerUp;
     public boolean moving = false;
     public boolean hasPowerUp = false;
+    public int pointVal;
 
     public Brick(Image image, int hits) {
         super(image);
         myHits = hits;
+
+        //gives each brick its specified number of points
+        assignBrickPoints(hits);
 
         //gives the block a PowerUp with a 10% chance
         determinePowerUp();
@@ -34,6 +23,18 @@ public class Brick extends MovingObject {
         //decodes hits==4 as a moving block with 2 hits to break
         if (hits == 4) {
             handleMovingBlock();
+        }
+    }
+
+    private void assignBrickPoints(int hits) {
+        if (hits == 1){
+            pointVal = 100;
+        } else if (hits == 2){
+            pointVal = 250;
+        } else if (hits == 3){
+            pointVal = 500;
+        } else if (hits == 4){
+            pointVal = 1000;
         }
     }
 
@@ -49,7 +50,7 @@ public class Brick extends MovingObject {
 
     private void handleMovingBlock() {
         moving = true;
-        setXDir(1);
+        setXVel(1);
         myHits = 2;
     }
 }
