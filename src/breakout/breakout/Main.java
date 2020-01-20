@@ -323,6 +323,13 @@ public class Main extends Application {
         updatePowerUps();
         makeMovingBricksMove();
         checkBrickCollision();
+        checkEndGame();
+    }
+
+    private void checkEndGame() {
+        if (playerLives <= 0) {
+            endGame("You Lose");
+        }
     }
 
     private void checkWallCollision(MovingObject object) {
@@ -355,9 +362,7 @@ public class Main extends Application {
         playerLives -= 1;
         playerLivesTxt.setText("Lives: " + playerLives);
         sendBallAndPaddleToCenter();
-        if (playerLives <= 0){
-            endGame("You Loose");
-        }
+        checkEndGame();
     }
 
     private void bounceOffHorzSurface(MovingObject object) {
@@ -510,6 +515,14 @@ public class Main extends Application {
         clearEntireScreen();
     }
 
+    private void clearPreviousLevel() {
+        for (Brick myBrick:myBricks){
+            moveImageViewOffScreen(myBrick);
+            moveImageViewOffScreen(myBrick.myPowerUp);
+        }
+        myBricks = new ArrayList<>();
+    }
+
     private void displayEndGameMessage(String s) {
         System.out.println(s);
         Text textMessage = new Text(70, 250, s);
@@ -523,14 +536,6 @@ public class Main extends Application {
         myStatusBar.setX(1000);
         moveImageViewOffScreen(myPaddle);
         moveImageViewOffScreen(myBall);
-    }
-
-    private void clearPreviousLevel() {
-        for (Brick myBrick:myBricks){
-            moveImageViewOffScreen(myBrick);
-            moveImageViewOffScreen(myBrick.myPowerUp);
-        }
-        myBricks = new ArrayList<>();
     }
 
     private void removeIfBroken(Brick myBrick) {
@@ -561,7 +566,7 @@ public class Main extends Application {
             playerLives --;
             playerLivesTxt.setText("Lives: " + playerLives);
         }
-        else if (code == KeyCode.T) {
+        else if (code == KeyCode.P) {
             myPaddle.setFitWidth(myPaddle.getBoundsInParent().getWidth() + 50);
             myPaddle.setX(myPaddle.getX() - 25);
         }
