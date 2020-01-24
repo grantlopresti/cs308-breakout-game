@@ -2,8 +2,6 @@ package breakout;
 
 import javafx.scene.image.Image;
 
-import java.util.Objects;
-
 import static breakout.Main.reactToPowerUpCollision;
 
 public class PowerUp extends MovingObject {

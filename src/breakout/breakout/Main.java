@@ -117,17 +117,17 @@ public class Main extends Application {
         return scene;
     }
 
-    private void addWelcomeTextToRoot(Group root, Text welcomeTxt, Text subTxt, Text instructionTxt) {
-        root.getChildren().add(welcomeTxt);
-        root.getChildren().add(subTxt);
-        root.getChildren().add(instructionTxt);
-    }
-
     private void setWelcomeScreenFonts(Text welcomeTxt, Text subTxt, Text instructionTxt) {
         welcomeTxt.setFont(Font.font("Verdana", FontWeight.BOLD, 35));
         subTxt.setFont(Font.font("Verdana", FontWeight.BOLD, 20));
         instructionTxt.setFont(Font.font("Verdana", FontWeight.BOLD, 15));
         instructionTxt.setTextAlignment(TextAlignment.CENTER);
+    }
+
+    private void addWelcomeTextToRoot(Group root, Text welcomeTxt, Text subTxt, Text instructionTxt) {
+        root.getChildren().add(welcomeTxt);
+        root.getChildren().add(subTxt);
+        root.getChildren().add(instructionTxt);
     }
 
     // Create the game's "scene": what shapes will be in the game and their starting properties
@@ -147,7 +147,7 @@ public class Main extends Application {
         //Place paddle and ball in center
         sendBallAndPaddleToCenter();
         // order added to the group is the order in which they are drawn
-        addAllObjectsToGameRoot(levelsRoot);
+        addAllObjectsToGameRoot();
         // create a place to see the shapes
         Scene scene = new Scene(levelsRoot, Main.SIZE, Main.WINDOW_HEIGHT, Main.LEVEL_SCREEN_BACKGROUND);
         // respond to input
@@ -161,21 +161,16 @@ public class Main extends Application {
         return scene;
     }
 
-    private void addAllObjectsToGameRoot(Group root) {
-        root.getChildren().add(myStatusBar);
-        root.getChildren().add(playerLivesTxt);
-        root.getChildren().add(playerPointsTxt);
-        root.getChildren().add(myBall);
-        root.getChildren().add(myPaddle);
-        addBricksAndPowerUpsToRoot(root);
-    }
-
-    private void addBricksAndPowerUpsToRoot(Group root) {
-        for (Brick myBrick : GameSetup.myBricks) {
-            //Add powerUps underneath bricks]
-            root.getChildren().add(myBrick.myPowerUp);
-            //Add bricks to root
-            root.getChildren().add(myBrick);
+    private void makePowerUps(){
+        for (Brick myBrick: GameSetup.myBricks) {
+            double centerX = myBrick.getX() + myBrick.getBoundsInParent().getWidth()/2;
+            double centerY = myBrick.getY() + myBrick.getBoundsInParent().getHeight()/2;
+            //creates power up with random type
+            PowerUp myPowerUp = createPowerUp();
+            //positions power up in center of brick or off the screen
+            positionPowerUp(myBrick, centerX, centerY, myPowerUp);
+            //add power up to respective Brick object
+            myBrick.addPowerUp(myPowerUp);
         }
     }
 
@@ -201,19 +196,6 @@ public class Main extends Application {
         return new PowerUp(image, powerUpType);
     }
 
-    private void makePowerUps(){
-        for (Brick myBrick: GameSetup.myBricks) {
-            double centerX = myBrick.getX() + myBrick.getBoundsInParent().getWidth()/2;
-            double centerY = myBrick.getY() + myBrick.getBoundsInParent().getHeight()/2;
-            //creates power up with random type
-            PowerUp myPowerUp = createPowerUp();
-            //positions power up in center of brick or off the screen
-            positionPowerUp(myBrick, centerX, centerY, myPowerUp);
-            //add power up to respective Brick object
-            myBrick.addPowerUp(myPowerUp);
-        }
-    }
-
     private void positionPowerUp(Brick myBrick, double centerX, double centerY, PowerUp myPowerUp) {
         if (myBrick.hasPowerUp){
             myPowerUp.setX(centerX - myPowerUp.getBoundsInParent().getWidth()/2);
@@ -222,12 +204,6 @@ public class Main extends Application {
             moveImageViewOffScreen(myPowerUp);
         }
     }
-
-    private static void moveImageViewOffScreen(ImageView myPowerUp) {
-        myPowerUp.setX(1000);
-        myPowerUp.setY(1000);
-    }
-
 
     private static void sendBallAndPaddleToCenter() {
         myPaddle.setX(SIZE/2.0 - myPaddle.getBoundsInLocal().getWidth() / 2);
@@ -238,6 +214,24 @@ public class Main extends Application {
         myBall.setYVel(0);
     }
 
+    private void addAllObjectsToGameRoot() {
+        Main.levelsRoot.getChildren().add(myStatusBar);
+        Main.levelsRoot.getChildren().add(playerLivesTxt);
+        Main.levelsRoot.getChildren().add(playerPointsTxt);
+        Main.levelsRoot.getChildren().add(myBall);
+        Main.levelsRoot.getChildren().add(myPaddle);
+        addBricksAndPowerUpsToRoot();
+    }
+
+    private void addBricksAndPowerUpsToRoot() {
+        for (Brick myBrick : GameSetup.myBricks) {
+            //Add powerUps underneath bricks]
+            Main.levelsRoot.getChildren().add(myBrick.myPowerUp);
+            //Add bricks to root
+            Main.levelsRoot.getChildren().add(myBrick);
+        }
+    }
+
     // Change properties of shapes in small ways to animate them over time
     // Note, there are more sophisticated ways to animate shapes, but these simple ways work fine to start
     private void step() throws FileNotFoundException {
@@ -246,14 +240,8 @@ public class Main extends Application {
         myBall.checkPaddleCollision();
         updatePowerUps();
         makeMovingBricksMove();
-        checkBrickCollision();
+        checkBricksCollision();
         checkEndGame();
-    }
-
-    private static void checkEndGame() {
-        if (playerLives <= 0) {
-            endGame("You Lose");
-        }
     }
 
     private void updatePowerUps() {
@@ -270,32 +258,12 @@ public class Main extends Application {
         }
     }
 
-    public static void reactToPowerUpCollision(String myType) {
-        switch (myType) {
-            case "SLOW":
-                //set ball speed to 60%
-                myBall.setXVel(myBall.xVelocity * 0.6);
-                myBall.setYVel(myBall.yVelocity * 0.6);
-                break;
-            case "LIFE":
-                //give 5 bonus lives
-                playerLives += 5;
-                playerLivesTxt.setText("Lives: " + playerLives);
-                break;
-            case "PADDLE":
-                //increase paddle size by 50
-                myPaddle.setFitWidth(myPaddle.getBoundsInParent().getWidth() + 50);
-                myPaddle.setX(myPaddle.getX() - 25);
-                break;
-            case "BONUS":
-                //give 2500 bonus points
-                playerPoints += 2500;
-                playerPointsTxt.setText("Points: " + playerPoints);
-                break;
-        }
+    private static void moveImageViewOffScreen(ImageView myPowerUp) {
+        myPowerUp.setX(1000);
+        myPowerUp.setY(1000);
     }
 
-    private void checkBrickCollision() throws FileNotFoundException {
+    private void checkBricksCollision() throws FileNotFoundException {
         for (Brick myBrick : GameSetup.myBricks) {
             boolean doesIntersect = myBall.getBoundsInParent().intersects(myBrick.getBoundsInParent());
             if (doesIntersect) {
@@ -332,7 +300,15 @@ public class Main extends Application {
         currentLevel++;
         makePowerUps();
         sendBallAndPaddleToCenter();
-        addBricksAndPowerUpsToRoot(levelsRoot);
+        addBricksAndPowerUpsToRoot();
+    }
+
+    private static void clearPreviousLevel() {
+        for (Brick myBrick: GameSetup.myBricks){
+            moveImageViewOffScreen(myBrick);
+            moveImageViewOffScreen(myBrick.myPowerUp);
+        }
+        GameSetup.myBricks = new ArrayList<>();
     }
 
     private void makeBricksForNextLevel() throws FileNotFoundException {
@@ -347,18 +323,16 @@ public class Main extends Application {
         }
     }
 
+    private static void checkEndGame() {
+        if (playerLives <= 0) {
+            endGame("You Lose");
+        }
+    }
+
     private static void endGame(String message) {
         clearPreviousLevel();
         displayEndGameMessage(message);
         clearEntireScreen();
-    }
-
-    private static void clearPreviousLevel() {
-        for (Brick myBrick: GameSetup.myBricks){
-            moveImageViewOffScreen(myBrick);
-            moveImageViewOffScreen(myBrick.myPowerUp);
-        }
-        GameSetup.myBricks = new ArrayList<>();
     }
 
     private static void displayEndGameMessage(String s) {
@@ -458,17 +432,42 @@ public class Main extends Application {
         }
     }
 
-    public static void loseLife(){
-        playerLives -= 1;
-        playerLivesTxt.setText("Lives: " + playerLives);
-        sendBallAndPaddleToCenter();
-        checkEndGame();
-    }
-
     /**
      * Start the program.
      */
     public static void main (String[] args) {
         launch(args);
+    }
+
+    public static void reactToPowerUpCollision(String myType) {
+        switch (myType) {
+            case "SLOW":
+                //set ball speed to 60%
+                myBall.setXVel(myBall.xVelocity * 0.6);
+                myBall.setYVel(myBall.yVelocity * 0.6);
+                break;
+            case "LIFE":
+                //give 5 bonus lives
+                playerLives += 5;
+                playerLivesTxt.setText("Lives: " + playerLives);
+                break;
+            case "PADDLE":
+                //increase paddle size by 50
+                myPaddle.setFitWidth(myPaddle.getBoundsInParent().getWidth() + 50);
+                myPaddle.setX(myPaddle.getX() - 25);
+                break;
+            case "BONUS":
+                //give 2500 bonus points
+                playerPoints += 2500;
+                playerPointsTxt.setText("Points: " + playerPoints);
+                break;
+        }
+    }
+
+    public static void loseLife(){
+        playerLives -= 1;
+        playerLivesTxt.setText("Lives: " + playerLives);
+        sendBallAndPaddleToCenter();
+        checkEndGame();
     }
 }

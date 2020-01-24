@@ -9,6 +9,13 @@ public class MovingObject extends ImageView {
     public double xVelocity = 0;
     public double yVelocity = 0;
 
+    /**
+     * All MovingObject objects are simply extensions of ImageView (meaning they are objects visible on the screen)
+     * They have the bonus instance variables of x and y velocity which are used to update the object's position
+     *
+     *
+     * @param image is simply the image based off of the .gif file for the MovingObject
+     */
     public MovingObject(Image image) {
         super(image);
     }
