@@ -163,18 +163,14 @@ public class Main extends Application {
 
     private void makePowerUps(){
         for (Brick myBrick: GameSetup.myBricks) {
-            double centerX = myBrick.getX() + myBrick.getBoundsInParent().getWidth()/2;
-            double centerY = myBrick.getY() + myBrick.getBoundsInParent().getHeight()/2;
             //creates power up with random type
-            PowerUp myPowerUp = createPowerUp();
-            //positions power up in center of brick or off the screen
-            positionPowerUp(myBrick, centerX, centerY, myPowerUp);
+            PowerUp myPowerUp = createPowerUp(myBrick);
             //add power up to respective Brick object
             myBrick.addPowerUp(myPowerUp);
         }
     }
 
-    private PowerUp createPowerUp() {
+    private PowerUp createPowerUp(Brick myBrick) {
         String powerUpType;
         Image image;
         //random number for random powerup assignment
@@ -193,16 +189,7 @@ public class Main extends Application {
             image = powerUpImageB;
         }
         // creates and returns new powerup
-        return new PowerUp(image, powerUpType);
-    }
-
-    private void positionPowerUp(Brick myBrick, double centerX, double centerY, PowerUp myPowerUp) {
-        if (myBrick.hasPowerUp){
-            myPowerUp.setX(centerX - myPowerUp.getBoundsInParent().getWidth()/2);
-            myPowerUp.setY(centerY - myPowerUp.getBoundsInParent().getHeight()/2);
-        } else {
-            moveImageViewOffScreen(myPowerUp);
-        }
+        return new PowerUp(image, powerUpType, myBrick);
     }
 
     private static void sendBallAndPaddleToCenter() {
