@@ -2,6 +2,8 @@ package breakout;
 
 import javafx.scene.image.Image;
 
+import static breakout.Main.MOVING_OBJECT_SPEED;
+
 public class Brick extends MovingObject {
     public static final double POWER_UP_PROBABILITY = 0.1;
     public int myHits;
@@ -52,5 +54,25 @@ public class Brick extends MovingObject {
         moving = true;
         setXVel(1);
         myHits = 2;
+    }
+
+    public void removeIfBroken() {
+        if (myHits <= 0){
+            //moves brick off screen
+            setX(1000);
+            setY(1000);
+        }
+    }
+
+    public void updatePowerUp() {
+        if (hasPowerUp && myHits == 0) {
+            setPowerUpFalling();
+        }
+    }
+
+    private void setPowerUpFalling() {
+        myPowerUp.setMoving(true);
+        myPowerUp.checkPaddleCollision();
+        myPowerUp.setY(myPowerUp.getY() + MOVING_OBJECT_SPEED * myPowerUp.yVel);
     }
 }
