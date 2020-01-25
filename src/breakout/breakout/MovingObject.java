@@ -42,7 +42,7 @@ public class MovingObject extends ImageView {
             }
             if (maxY >= WINDOW_HEIGHT){
                 bounceOffBottom();
-                Main.loseLife();
+                loseLife();
             }
         }
         incrementObjectsPosition();
